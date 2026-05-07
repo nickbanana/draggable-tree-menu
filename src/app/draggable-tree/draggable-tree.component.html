@@ -1,48 +1,65 @@
-<div cdkDropListGroup class="listBoundary">
-  <ul ngTree #tree="ngTree" class="basic-tree" cdkDropList [cdkDropListData]="mutableNodes" (cdkDropListDropped)="drop($event)">
-    <ng-template
-      [ngTemplateOutlet]="treeNodes"
-      [ngTemplateOutletContext]="{nodes: mutableNodes, parent: tree}"
+<div class="search_panel">
+  <div class="search_head">
+    <label class="search_label" for="menu-search">選單搜尋</label>
+    <span class="search_count">{{ filteredNodes().length }} 筆</span>
+  </div>
+
+  <div class="search_control">
+    <span class="search_icon" aria-hidden="true">⌕</span>
+    <input
+      id="menu-search"
+      class="search_input"
+      type="search"
+      placeholder="輸入名稱或路徑..."
+      [value]="searchKeyword()"
+      (input)="onSearchKeywordInput($any($event.target).value)"
     />
-  </ul>
-</div>
-<ng-template #treeNodes let-nodes="nodes" let-parent="parent">
-  @for (node of nodes; track node.id) {
-    <li
-      ngTreeItem
-      cdkDrag
-      [cdkDragData]="node.id"
-      cdkDragBoundary=".listBoundary"
-      [parent]="parent"
-      [value]="node.id"
-      [label]="node.name"
-      [disabled]="node.disabled"
-      [(expanded)]="node.expanded"
-      #treeItem="ngTreeItem"
-    >
-      <span
-        aria-hidden="true"
-        class="material-symbols-outlined expand-icon"
-        translate="no"
-        >{{node.menus ? 'chevron_right' : ''}}</span
+
+    @if (searchKeyword().length > 0) {
+      <button
+        type="button"
+        class="search_clear"
+        (click)="onSearchKeywordInput('')"
+        aria-label="清除搜尋"
       >
-      <span
-        aria-hidden="true"
-        class="material-symbols-outlined"
-        translate="no"
-        >{{node.menus ? 'folder' : 'docs'}}</span
-      >
-      {{ node.name }}
-    </li>
-    @if (node.menus) {
-      <ul role="group" cdkDropList (cdkDropListDropped)="drop($event)">
-        <ng-template ngTreeItemGroup [ownedBy]="treeItem" #group="ngTreeItemGroup">
-          <ng-template
-            [ngTemplateOutlet]="treeNodes"
-            [ngTemplateOutletContext]="{nodes: node.menus, parent: group}"
-          />
-        </ng-template>
-      </ul>
+        清除
+      </button>
     }
+  </div>
+</div>
+
+<div class="tree_toolbar">
+  <button
+    type="button"
+    class="tree_toggle_btn"
+    [disabled]="!hasExpandableNodes()"
+    (click)="onToggleExpandCollapseAll()"
+  >
+    {{ areAllExpanded() ? '全部縮合' : '全部展開' }}
+  </button>
+</div>
+
+<div class="list_wrap" appNestableMenu [menuItems]="filteredNodes()" (menuStructureChanged)="onMenuStructureChanged($event)">
+  @if (filteredNodes().length > 0) {
+    <ul class="list_items">
+      <ng-container *ngTemplateOutlet="menuTree; context: { items: filteredNodes() }"></ng-container>
+    </ul>
+  } @else {
+    <p class="search_empty">找不到符合的選單。</p>
+  }
+</div>
+
+<ng-template #menuTree let-items="items">
+  @for (item of items; track item.id) {
+    <li class="list_item" [attr.data-id]="item.id" [class.list_collapsed]="!item.expanded">
+      <span class="list_handle">{{ item.name }}</span>
+      @if (item.menus && item.menus.length > 0) {
+        <button type="button" data-action="collapse" [style.display]="item.expanded ? '' : 'none'">Collapse</button>
+        <button type="button" data-action="expand" [style.display]="item.expanded ? 'none' : ''">Expand</button>
+        <ul class="list_items">
+          <ng-container *ngTemplateOutlet="menuTree; context: { items: item.menus }"></ng-container>
+        </ul>
+      }
+    </li>
   }
 </ng-template>
